@@ -21,6 +21,8 @@ This project detects potholes and analyzes road conditions using machine learnin
 ## 📈 Output
 - Detection results
 - Performance graphs
+## 📊 Model Performance
+![Graph] (results.png)
 
 ## 👩‍💻 Author
 Shrishty Gupta
