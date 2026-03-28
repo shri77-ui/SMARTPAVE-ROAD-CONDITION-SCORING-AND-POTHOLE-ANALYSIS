@@ -1,0 +1,14 @@
+path: C:/SMARTPAVE_WEB/pothole_dataset
+
+train: train/images
+val: train/images
+
+nc: 1
+names: ['pothole']
+
+roboflow:
+  workspace: pothole-detection-3fecw
+  project: pothole-vhmow-9r3ks
+  version: 1
+  license: CC BY 4.0
+  url: https://app.roboflow.com/pothole-detection-3fecw/pothole-vhmow-9r3ks/1py 

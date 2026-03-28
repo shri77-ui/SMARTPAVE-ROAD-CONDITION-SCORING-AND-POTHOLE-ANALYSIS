@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartPave | National Infrastructure Monitoring</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+--primary:#0f172a;
+--secondary:#2563eb;
+--accent:#0ea5e9;
+--bg:#f4f7fb;
+--card:#ffffff;
+--text:#1e293b;
+--danger:#dc2626;
+--success:#16a34a;
+--warning:#f59e0b;
+}
+
+body.dark{
+--bg:#0f172a;
+--card:#1e293b;
+--text:#f1f5f9;
+}
+
+body{
+margin:0;
+font-family:'Poppins',sans-serif;
+background:var(--bg);
+color:var(--text);
+display:flex;
+transition:0.3s;
+}
+
+/* Sidebar */
+.sidebar{
+width:260px;
+background:linear-gradient(180deg,#0f172a,#1e293b);
+color:white;
+height:100vh;
+padding:25px;
+position:fixed;
+}
+
+.sidebar h2{
+margin-bottom:30px;
+font-weight:700;
+}
+
+.sidebar button{
+width:100%;
+padding:12px;
+margin-bottom:12px;
+border:none;
+border-radius:12px;
+background:var(--secondary);
+color:white;
+font-weight:600;
+cursor:pointer;
+transition:0.3s;
+}
+
+.sidebar button:hover{
+background:#1d4ed8;
+}
+
+/* Main */
+.main{
+margin-left:280px;
+padding:40px;
+width:100%;
+}
+
+/* Header */
+.header{
+background:linear-gradient(90deg,#0f172a,#2563eb);
+color:white;
+padding:25px;
+border-radius:16px;
+margin-bottom:30px;
+box-shadow:0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* Cards */
+.card{
+background:var(--card);
+padding:30px;
+border-radius:16px;
+box-shadow:0 4px 20px rgba(15,23,42,0.08);
+margin-bottom:25px;
+border:1px solid rgba(0,0,0,0.04);
+}
+
+/* Grid */
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+gap:25px;
+}
+
+/* Upload */
+.upload-box{
+border:2px dashed var(--secondary);
+padding:40px;
+text-align:center;
+border-radius:16px;
+cursor:pointer;
+transition:0.3s;
+background:rgba(37,99,235,0.05);
+}
+
+.upload-box:hover{
+background:rgba(37,99,235,0.1);
+}
+
+/* Severity */
+.badge{
+padding:10px 20px;
+border-radius:12px;
+color:white;
+font-weight:600;
+}
+
+.low{background:var(--success);}
+.medium{background:var(--warning);}
+.high{
+background:var(--danger);
+animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+0%{box-shadow:0 0 0 0 rgba(220,38,38,0.6);}
+70%{box-shadow:0 0 0 15px rgba(220,38,38,0);}
+100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}
+}
+
+/* Popup */
+.popup{
+position:fixed;
+top:20px;
+right:20px;
+color:white;
+padding:20px;
+border-radius:12px;
+display:none;
+box-shadow:0 5px 20px rgba(0,0,0,0.3);
+z-index:999;
+}
+
+/* Camera */
+#videoStream{
+width:100%;
+max-width:700px;
+border-radius:16px;
+margin-top:15px;
+display:none;
+}
+
+/* History Table */
+.history-table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+font-size:14px;
+}
+
+.history-table th{
+background:#1e293b;
+color:white;
+padding:12px;
+text-align:left;
+}
+
+.history-table td{
+padding:10px;
+border-bottom:1px solid #e5e7eb;
+}
+
+body.dark .history-table th{
+background:#0f172a;
+}
+
+@media(max-width:768px){
+.sidebar{position:relative;width:100%;height:auto;}
+.main{margin-left:0;}
+}
+</style>
+</head>
+
+<body>
+
+<audio id="alertSound">
+<source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
+</audio>
+
+<div class="popup" id="alertPopup"></div>
+
+<div class="sidebar">
+<h2>SmartPave</h2>
+<button onclick="toggleMode()">Toggle Dark Mode</button>
+<button onclick="startCamera()">Start Camera</button>
+<button onclick="stopCamera()">Stop Camera</button>
+<button onclick="downloadPDF()">Download Report</button>
+</div>
+
+<div class="main">
+
+<div class="header">
+<h2>Smart Road Damage Detection System</h2>
+<p>AI Powered Road Damage Intelligence System</p>
+</div>
+
+<!-- Upload -->
+<div class="card">
+<h3>Upload Road Image</h3>
+<form action="/upload" method="POST" enctype="multipart/form-data">
+<div class="upload-box" onclick="document.getElementById('fileInput').click();">
+Click to Select Image
+<img id="previewImage" style="display:none;max-width:100%;margin-top:15px;border-radius:12px;">
+</div>
+<input type="file" id="fileInput" name="image" accept="image/*" hidden required>
+<br><br>
+<button style="padding:12px 25px;border:none;border-radius:12px;background:#2563eb;color:white;font-weight:600;">Analyze</button>
+</form>
+</div>
+
+<div class="grid">
+
+<div class="card" style="text-align:center;">
+<h3>Road Health Index</h3>
+<canvas id="gaugeChart"></canvas>
+<h2>{{ health }}%</h2>
+</div>
+
+<div class="card" style="text-align:center;">
+<h3>Severity</h3>
+{% if severity == "Low" %}
+<span class="badge low">LOW</span>
+{% elif severity == "Medium" %}
+<span class="badge medium">MEDIUM</span>
+{% else %}
+<span class="badge high">HIGH</span>
+{% endif %}
+</div>
+
+<div class="card" style="text-align:center;">
+<h3>Potholes Detected</h3>
+<h1>{{ potholes }}</h1>
+</div>
+
+</div>
+
+<!-- Analytics -->
+<div class="card">
+<h3>Infrastructure Damage Intelligence</h3>
+<canvas id="analyticsChart" height="120"></canvas>
+</div>
+
+<!-- History -->
+<div class="card">
+<h3>Inspection History</h3>
+<table class="history-table">
+<thead>
+<tr>
+<th>Date</th>
+<th>Potholes</th>
+<th>Severity</th>
+<th>Health</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="historyBody"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Live Monitoring Camera</h3>
+<img id="videoStream" src="{{ url_for('video') }}">
+</div>
+
+{% if image %}
+<div class="card">
+<h3>Detection Output</h3>
+<img src="{{ url_for('static', filename=image) }}" width="100%">
+</div>
+{% endif %}
+
+</div>
+
+<script>
+const healthValue={{ health }};
+const potholesValue={{ potholes }};
+const severityValue="{{ severity }}";
+
+/* Email Popup + Sound */
+function showEmailPopup(){
+const popup=document.getElementById("alertPopup");
+
+if(severityValue==="High"){
+popup.style.background="#dc2626";
+popup.innerHTML="🚨 HIGH SEVERITY — Email Alert Sent to Authority";
+document.getElementById("alertSound").play();
+}
+else if(severityValue==="Medium"){
+popup.style.background="#f59e0b";
+popup.innerHTML="⚠ MEDIUM SEVERITY — Notification Sent";
+}
+else{
+popup.style.background="#16a34a";
+popup.innerHTML="✔ LOW SEVERITY — Report Logged Successfully";
+}
+
+popup.style.display="block";
+setTimeout(()=>{popup.style.display="none";},5000);
+}
+
+showEmailPopup();
+
+/* History */
+function addToHistory(){
+let history=JSON.parse(localStorage.getItem("inspectionHistory"))||[];
+
+const entry={
+date:new Date().toLocaleString(),
+potholes:potholesValue,
+severity:severityValue,
+health:healthValue,
+status:severityValue==="High"?"Alert Sent":"Logged"
+};
+
+history.unshift(entry);
+localStorage.setItem("inspectionHistory",JSON.stringify(history));
+renderHistory();
+}
+
+function renderHistory(){
+let history=JSON.parse(localStorage.getItem("inspectionHistory"))||[];
+let body=document.getElementById("historyBody");
+body.innerHTML="";
+
+history.slice(0,10).forEach(item=>{
+body.innerHTML+=`
+<tr>
+<td>${item.date}</td>
+<td>${item.potholes}</td>
+<td>${item.severity}</td>
+<td>${item.health}%</td>
+<td>${item.status}</td>
+</tr>`;
+});
+}
+
+addToHistory();
+renderHistory();
+
+/* Dark Mode */
+function toggleMode(){
+document.body.classList.toggle("dark");
+}
+
+/* Camera */
+function startCamera(){
+fetch("/start_camera");
+document.getElementById("videoStream").style.display="block";
+}
+function stopCamera(){
+fetch("/stop_camera");
+document.getElementById("videoStream").style.display="none";
+}
+
+/* Upload Preview */
+document.getElementById("fileInput").addEventListener("change",function(){
+const reader=new FileReader();
+reader.onload=e=>{
+document.getElementById("previewImage").src=e.target.result;
+document.getElementById("previewImage").style.display="block";
+};
+reader.readAsDataURL(this.files[0]);
+});
+
+/* Gauge */
+new Chart(document.getElementById("gaugeChart"),{
+type:'doughnut',
+data:{datasets:[{data:[healthValue,100-healthValue],backgroundColor:['#2563eb','#e5e7eb'],borderWidth:0}]},
+options:{rotation:-90,circumference:180,cutout:'75%',plugins:{legend:{display:false}}}
+});
+
+/* Analytics */
+new Chart(document.getElementById("analyticsChart"),{
+type:'bar',
+data:{
+labels:['Detected Damage','Risk Threshold','Remaining Health'],
+datasets:[{
+data:[potholesValue,10,healthValue],
+backgroundColor:['#dc2626','#f59e0b','#2563eb'],
+borderRadius:10
+}]
+},
+options:{
+responsive:true,
+plugins:{legend:{display:false}},
+animation:{duration:1500}
+}
+});
+
+/* PDF */
+function downloadPDF(){
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+doc.text("SmartPave Road Inspection Report",20,20);
+doc.text("Potholes: "+potholesValue,20,40);
+doc.text("Severity: "+severityValue,20,50);
+doc.text("Health Score: "+healthValue+"/100",20,60);
+doc.save("SmartPave_Report.pdf");
+}
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
