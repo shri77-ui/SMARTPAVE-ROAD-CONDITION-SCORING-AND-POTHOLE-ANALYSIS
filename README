@@ -1,0 +1,26 @@
+# SmartPave: Road Condition & Pothole Analysis
+
+## 📌 Overview
+This project detects potholes and analyzes road conditions using machine learning.
+
+## 🚀 Features
+- Pothole detection
+- Road condition scoring
+- Real-time alert system
+- Graph visualization (loss & precision)
+
+## 🛠 Tech Stack
+- Python
+- OpenCV
+- YOLO
+- Streamlit
+
+## 📊 Dataset
+- Trained on 1300 images
+
+## 📈 Output
+- Detection results
+- Performance graphs
+
+## 👩‍💻 Author
+Shrishty Gupta
